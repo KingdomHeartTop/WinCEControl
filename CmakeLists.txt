@@ -1,0 +1,26 @@
+cmake_minimum_required(VERSION 3.10)
+project(WinCEControl)
+
+set(CMAKE_CXX_STANDARD 17)
+
+# Подключение библиотек RAPI
+find_library(RAPI_LIB Rapi)
+if(NOT RAPI_LIB)
+    message(FATAL_ERROR "Rapi.lib not found. Install Windows CE SDK or Mobile SDK.")
+endif()
+
+add_executable(WinCEControl
+    src/main.cpp
+    src/RapiManager.cpp
+    src/FileManager.cpp
+    src/ProcessManager.cpp
+    src/DeviceDetector.cpp
+)
+
+target_link_libraries(WinCEControl
+    ${RAPI_LIB}
+    coredll.lib
+    toolhelp.lib
+)
+
+target_include_directories(WinCEControl PRIVATE include)
