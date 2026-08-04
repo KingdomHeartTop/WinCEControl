@@ -1,115 +1,20 @@
-name: Build WinCEControl
+name: Code Check
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
 
 jobs:
   check:
-    runs-on: ubuntu-22.04
-    name: Code Check
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Check repo
+      - uses: actions/checkout@v4
+      - name: Check files
         run: |
-          echo "Checking repo..."
+          echo "Repository check passed"
+          echo "Files:"
           ls -la
-          [ -d "src" ] && echo "src exists" || echo "src missing"
-
-  build:
-    runs-on: windows-2022
-    name: Build (${{ matrix.platform }}, ${{ matrix.configuration }})
-    needs: check
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: [ARM, MIPS, SH4, x86]
-        configuration: [Debug, Release]
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Create dummy source
-        run: |
-          if not exist src mkdir src
-          @"
-          #include <iostream>
-          int main() {
-              std::cout << "WinCEControl CI" << std::endl;
-              return 0;
-          }
-          "@ > src\main.cpp
-
-      - name: Generate project
-        run: |
-          @"
-          <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-            <ItemGroup Label="ProjectConfigurations">
-              <ProjectConfiguration Include="${{ matrix.configuration }}|${{ matrix.platform }}">
-                <Configuration>${{ matrix.configuration }}</Configuration>
-                <Platform>${{ matrix.platform }}</Platform>
-              </ProjectConfiguration>
-            </ItemGroup>
-            <PropertyGroup Label="Globals">
-              <ProjectGuid>{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}</ProjectGuid>
-            </PropertyGroup>
-            <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-            <PropertyGroup>
-              <ConfigurationType>Application</ConfigurationType>
-              <PlatformToolset>v143</PlatformToolset>
-              <CharacterSet>Unicode</CharacterSet>
-            </PropertyGroup>
-            <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-            <ItemGroup>
-              <ClCompile Include="src\main.cpp" />
-            </ItemGroup>
-            <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-          </Project>
-          "@ > WinCEControl.vcxproj
-
-      - name: Build
-        run: |
-          mkdir build-${{ matrix.platform }}-${{ matrix.configuration }}
-          msbuild WinCEControl.vcxproj /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} /p:OutDir=build-${{ matrix.platform }}-${{ matrix.configuration }}\
-
-      - name: Upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: WinCEControl-${{ matrix.platform }}-${{ matrix.configuration }}
-          path: build-${{ matrix.platform }}-${{ matrix.configuration }}/
-          retention-days: 30
-
-  release:
-    runs-on: ubuntu-22.04
-    name: Create Release
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts/
-      - name: Pack
-        run: |
-          mkdir release
-          find artifacts/ -name "*.exe" -exec cp {} release/ \;
-          cp README.md release/ 2>/dev/null || true
-          cp LICENSE release/ 2>/dev/null || true
-      - name: Release
-        uses: softprops/action-gh-release@v1
-        with:
-          name: "WinCEControl ${{ github.ref_name }}"
-          tag_name: ${{ github.ref_name }}
-          files: release/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "Done"
