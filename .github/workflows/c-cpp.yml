@@ -250,7 +250,6 @@ jobs:
   release:
     runs-on: ubuntu-latest
     name: Create Release
-    needs: [check, build-x86, build-arm, build-mips, build-sh4]
     if: github.ref == 'refs/heads/main'
     
     steps:
