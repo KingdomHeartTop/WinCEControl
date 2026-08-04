@@ -1,0 +1,40 @@
+# .github/workflows/build.yml
+name: Build WinCEControl
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    strategy:
+      matrix:
+        platform: [ARM, MIPS, SH4, x86]
+        configuration: [Debug, Release]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1
+    
+    - name: Setup Windows CE SDK
+      run: |
+        # Download and install Windows CE SDK
+        # (replace with actual download URL)
+        echo "Setting up Windows CE SDK..."
+    
+    - name: Build
+      run: |
+        msbuild WinCEControl.sln /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }}
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: WinCEControl-${{ matrix.platform }}-${{ matrix.configuration }}
+        path: bin/${{ matrix.platform }}/${{ matrix.configuration }}/
