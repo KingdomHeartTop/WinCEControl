@@ -1,69 +1,82 @@
-# Prerequisites
-*.d
+# ============================================
+# Visual Studio / C++ / Windows CE
+# ============================================
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Linker files
-*.ilk
-
-# Debugger Files
+## Visual Studio
+*.sdf
+*.suo
+*.user
+*.ncb
 *.pdb
+*.ilk
+*.exp
+*.idb
+*.tlog
+*.log
+*.manifest
+*.res
+*.pch
+*.ipch
+*.aps
+*.opt
+*.plg
+*.dep
+*.clw
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-*.so.*
-
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
-
-# Build directories
+## Build directories
+Debug/
+Release/
+x64/
+x86/
+ARM/
+MIPS/
+SH4/
+bin/
+obj/
 build/
-Build/
-build-*/
+.vs/
+.vscode/
 
-# CMake generated files
-CMakeFiles/
+## CMake
 CMakeCache.txt
+CMakeFiles/
 cmake_install.cmake
 Makefile
-install_manifest.txt
-compile_commands.json
+*.cmake
+!CMakeLists.txt
 
-# Temporary files
+## Windows CE specific
+*.nb0
+*.nb1
+*.bin
+*.dat
+*.cab
+*.CAB
+DeviceConfig.xml
+
+## Executables / Libraries
+*.exe
+*.dll
+*.lib
+*.obj
+*.o
+*.so
+*.a
+
+## Temporary files
 *.tmp
-*.log
 *.bak
 *.swp
+*~
+*.log
+*.txt.log
 
-# vcpkg
-vcpkg_installed/
+## OS files
+Thumbs.db
+.DS_Store
+Desktop.ini
 
-# debug information files
-*.dwo
-
-# test output & cache
-Testing/
-.cache/
+## Project specific
+WinCEControl.exe
+WinCEControl.pdb
+WinCEControl.ilk
