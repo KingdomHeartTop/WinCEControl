@@ -2,166 +2,114 @@ name: Build WinCEControl
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
-  # ============================================
-  # 1. Проверка кода (всегда работает)
-  # ============================================
   check:
     runs-on: ubuntu-22.04
-    name: 📝 Code Check
-    
+    name: Code Check
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-    
-    - name: Check files
-      run: |
-        echo "========================================="
-        echo "Checking repository..."
-        echo "========================================="
-        
-        echo "Files in repository:"
-        ls -la
-        
-        if [ -d "src" ]; then
-          echo "✅ src/ exists"
-          echo "Files in src/:"
-          ls -la src/
-        else
-          echo "⚠️  src/ not found"
-        fi
-        
-        [ -f "README.md" ] && echo "✅ README.md" || echo "⚠️  No README.md"
-        [ -f "LICENSE" ] && echo "✅ LICENSE" || echo "⚠️  No LICENSE"
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Check repo
+        run: |
+          echo "Checking repo..."
+          ls -la
+          [ -d "src" ] && echo "src exists" || echo "src missing"
 
-  # ============================================
-  # 2. Сборка (простая, без реального SDK)
-  # ============================================
   build:
     runs-on: windows-2022
-    name: 🏗️ Build (${{ matrix.platform }}, ${{ matrix.configuration }})
+    name: Build (${{ matrix.platform }}, ${{ matrix.configuration }})
     needs: check
-    
     strategy:
-      fail-fast: false  # Не останавливать все при ошибке одной
+      fail-fast: false
       matrix:
         platform: [ARM, MIPS, SH4, x86]
         configuration: [Debug, Release]
-    
+
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-    
-    - name: Display environment
-      run: |
-        echo "========================================="
-        echo "System Information"
-        echo "========================================="
-        systeminfo | findstr /B /C:"OS Name" /C:"OS Version"
-        echo ""
-        echo "Visual Studio locations:"
-        dir "C:\Program Files\Microsoft Visual Studio\2022\*" 2>nul || echo "VS2022 not found in standard location"
-    
-    - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v2
-    
-    - name: Create dummy SDK
-      run: |
-        echo "Creating dummy Windows CE SDK..."
-        mkdir "C:\dummy_sdk\include" -Force
-        mkdir "C:\dummy_sdk\lib" -Force
-        
-        @"
-        // Dummy Windows CE SDK header
-        #pragma once
-        #define WINAPI
-        typedef void* HANDLE;
-        "# > "C:\dummy_sdk\include\windows.h"
-        
-        @"
-        // Dummy RAPI header
-        #pragma once
-        #include <windows.h>
-        "# > "C:\dummy_sdk\include\rapi.h"
-        
-        echo "Dummy SDK created"
-    
-    - name: Create dummy source (if no real source)
-      run: |
-        echo "Creating dummy source files..."
-        if not exist "src" mkdir src
-        
-        if not exist "src\main.cpp" (
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Create dummy source
+        run: |
+          if not exist src mkdir src
           @"
-          // WinCEControl - Dummy implementation for CI
           #include <iostream>
-          
           int main() {
-              std::cout << "WinCEControl - CI Build" << std::endl;
-              std::cout << "Platform: ${{ matrix.platform }}" << std::endl;
-              std::cout << "Configuration: ${{ matrix.configuration }}" << std::endl;
+              std::cout << "WinCEControl CI" << std::endl;
               return 0;
           }
-          "# > "src\main.cpp"
-        )
-        
-        echo "Source files ready:"
-        dir src\
-    
-    - name: Create Visual Studio project
-      run: |
-        echo "Creating Visual Studio project..."
-        
-        @"
-        <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-          <ItemGroup Label="ProjectConfigurations">
-            <ProjectConfiguration Include="${{ matrix.configuration }}|${{ matrix.platform }}">
-              <Configuration>${{ matrix.configuration }}</Configuration>
-              <Platform>${{ matrix.platform }}</Platform>
-            </ProjectConfiguration>
-          </ItemGroup>
-          <PropertyGroup Label="Globals">
-            <ProjectGuid>{12345678-1234-1234-1234-123456789012}</ProjectGuid>
-            <RootNamespace>WinCEControl</RootNamespace>
-          </PropertyGroup>
-          <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-          <PropertyGroup>
-            <ConfigurationType>Application</ConfigurationType>
-            <PlatformToolset>v143</PlatformToolset>
-            <CharacterSet>Unicode</CharacterSet>
-          </PropertyGroup>
-          <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-          <ItemGroup>
-            <ClCompile Include="src\main.cpp" />
-          </ItemGroup>
-          <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-        </Project>
-        "# > WinCEControl.vcxproj
-        
-        echo "Project file created"
-    
-    - name: Build
-      run: |
-        echo "========================================="
-        echo "Building for ${{ matrix.platform }} - ${{ matrix.configuration }}"
-        echo "========================================="
-        
-        # Создаём папку для вывода
-        mkdir build-${{ matrix.platform }}-${{ matrix.configuration }} -Force
-        
-        # Используем MSBuild
-        msbuild WinCEControl.vcxproj /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} /p:OutDir=build-${{ matrix.platform }}-${{ matrix.configuration }}\
-        
-        echo "Build completed"
-    
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: WinCEControl-${{ matrix.platform }}-${{ matrix.configuration }}
-        path: build-${{ matrix.platform }}-${{ matrix.configuration }}/
-        retention-days: 30
+          "@ > src\main.cpp
+
+      - name: Generate project
+        run: |
+          @"
+          <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+            <ItemGroup Label="ProjectConfigurations">
+              <ProjectConfiguration Include="${{ matrix.configuration }}|${{ matrix.platform }}">
+                <Configuration>${{ matrix.configuration }}</Configuration>
+                <Platform>${{ matrix.platform }}</Platform>
+              </ProjectConfiguration>
+            </ItemGroup>
+            <PropertyGroup Label="Globals">
+              <ProjectGuid>{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}</ProjectGuid>
+            </PropertyGroup>
+            <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+            <PropertyGroup>
+              <ConfigurationType>Application</ConfigurationType>
+              <PlatformToolset>v143</PlatformToolset>
+              <CharacterSet>Unicode</CharacterSet>
+            </PropertyGroup>
+            <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+            <ItemGroup>
+              <ClCompile Include="src\main.cpp" />
+            </ItemGroup>
+            <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+          </Project>
+          "@ > WinCEControl.vcxproj
+
+      - name: Build
+        run: |
+          mkdir build-${{ matrix.platform }}-${{ matrix.configuration }}
+          msbuild WinCEControl.vcxproj /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} /p:OutDir=build-${{ matrix.platform }}-${{ matrix.configuration }}\
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: WinCEControl-${{ matrix.platform }}-${{ matrix.configuration }}
+          path: build-${{ matrix.platform }}-${{ matrix.configuration }}/
+          retention-days: 30
+
+  release:
+    runs-on: ubuntu-22.04
+    name: Create Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+      - name: Pack
+        run: |
+          mkdir release
+          find artifacts/ -name "*.exe" -exec cp {} release/ \;
+          cp README.md release/ 2>/dev/null || true
+          cp LICENSE release/ 2>/dev/null || true
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: "WinCEControl ${{ github.ref_name }}"
+          tag_name: ${{ github.ref_name }}
+          files: release/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
